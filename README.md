@@ -1,22 +1,36 @@
-# [Inserisci il Nome del Progetto]
+# Real vs AI-Generated Faces Classification
 
-## Panoramica
-[Breve descrizione del progetto: es. Questo progetto implementa un sistema avanzato per l'analisi e il riconoscimento facciale/espressioni, combinando tecniche classiche di Computer Vision con Deep Learning.]
+This repository contains a Computer Vision project focused on binary classification to distinguish between real human faces and AI-generated deepfakes.
 
-## Architettura del Modello
-Il modello core di questo progetto è basato su **EfficientNet**. Questa architettura è stata preferita per la sua eccezionale capacità di bilanciare accuratezza ed efficienza computazionale (scaling ottimizzato di profondità, larghezza e risoluzione), garantendo prestazioni superiori e tempi di inferenza ridotti rispetto a modelli tradizionali.
+## Dataset
+The models were trained and evaluated on custom splits combining two major data sources:
+* Real Faces: FFHQ (Flickr-Faces-HQ) dataset.
+* Fake/AI-Generated Faces: AI-Generated Faces dataset from Kaggle.
 
-## Pipeline di Estrazione delle Feature
-Per massimizzare le informazioni fornite alla rete e migliorare la robustezza del sistema, le immagini in input passano attraverso una pipeline strutturata in tre fasi fondamentali:
+Two dataset scales were used during development: a smaller balanced subset of 20,000 images for rapid architectural prototyping, and a full dataset extended to 100,000 images for the final training pipeline. The data was systematically shuffled and split into 70% for training, 15% for validation, and 15% for testing.
 
-1. **Face Detection e Landmark Extraction:**
-   Il primo passaggio consiste nell'identificare il volto all'interno dell'immagine per eliminare il rumore di fondo. Oltre alla bounding box, vengono estratti i landmark facciali chiave (punti di repere come occhi, naso, bocca e contorno del viso).
+## Model Architecture
+The core of the classification engine relies on Transfer Learning using the **EfficientNetB0** architecture. This model, pre-trained on ImageNet-1K, was selected over ResNet50 due to its superior efficiency, better generalization, and optimal balance of depth, width, and resolution via Compound Scaling. 
 
-2. **Triangolazione (Delaunay):**
-   A partire dai landmark estratti, viene applicata la Triangolazione di Delaunay. Questa tecnica genera una mesh geometrica sul volto, permettendo di mappare e catturare le relazioni spaziali e le micro-deformazioni strutturali legate alla mimica facciale.
+The final architecture consists of:
+* EfficientNetB0 backbone (with fine-tuning applied only to the last 10 layers).
+* Custom Attention Layer positioned before the classifier.
+* Global Average Pooling 2D.
+* Dense layer (128 units) with Batch Normalization and Dropout (0.5).
+* Output Dense layer with softmax activation for 2 classes.
 
-3. **Local Binary Patterns (LBP):**
-   Per affiancare le feature geometriche con dati legati alla texture, viene utilizzato l'algoritmo LBP. Questo estrattore analizza la micro-texture dell'immagine confrontando ogni pixel con il suo vicinato. È un metodo fondamentale perché fornisce una mappa delle feature estremamente robusta alle variazioni di illuminazione.
+To prevent overfitting and improve model robustness, data augmentation techniques were applied randomly during training, including horizontal flip, rotation (±10°), zoom (±10%), and contrast variation (±10%).
 
-## Installazione e Utilizzo
-[Aggiungi qui i dettagli su come clonare il repo, installare i requirements e lanciare il codice]
+## Explainability
+While the custom attention layer provided a slight quantitative improvement in standard classification metrics, its primary contribution is qualitative. It allows for the visualization of which specific features are weighted more heavily by the model, helping to justify the network's decisions and making the system significantly more transparent.
+
+## Usage
+The main script `assignment3.py` provides a structured command-line interface to interact with the pipeline. It supports the following modes:
+
+* **build_model**: Constructs and saves the architecture summaries and plot diagrams for the models with and without the attention layer.
+* **train**: Trains the model on the selected dataset, with optional arguments to use the 100k dataset (`use_large_dataset`) and to enable the custom attention module (`use_attention`).
+* **test**: Evaluates the trained model on the dedicated test set, computing accuracy, precision, recall, f1-score, and generating the confusion matrix.
+* **classify**: Runs direct inference on one or more custom image paths, outputting the predicted class (Reale or Generato) along with the confidence score.
+
+## Author
+Claudio Pelleriti
